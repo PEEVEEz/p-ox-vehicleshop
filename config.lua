@@ -28,7 +28,7 @@ return {
         {
             blip = {
                 text = "Autokauppa",
-                coords = vec2(1, 1),
+                coords = vec3(-57.0106, -1098.8391, 0),
                 sprite = 380
             },
 

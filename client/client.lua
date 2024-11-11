@@ -4,6 +4,18 @@ local Ox = require '@ox_core/lib/init'
 local activeCamera = nil
 local activeVehicle = nil
 
+local function createBlip(coords, sprite, text)
+    local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
+    SetBlipSprite(blip, sprite)
+    SetBlipDisplay(blip, 4)
+    SetBlipScale(blip, 1.0)
+    SetBlipColour(blip, 2)
+    SetBlipAsShortRange(blip, true)
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentString(text)
+    EndTextCommandSetBlipName(blip)
+end
+
 local function vehicleSelected(model, id)
     lib.requestModel(model, 50000)
     local coords = config.locations[id].showCoords
@@ -27,14 +39,14 @@ local function destroyCamera()
     RenderScriptCams(false, false, 0, true, true)
     if activeCamera then
         DestroyCam(activeCamera, true)
+        activeCamera = nil
     end
 end
 
 local function closeVehicleShop()
-    print("close?")
-
     if activeVehicle then
         DeleteEntity(activeVehicle)
+        activeVehicle = nil
     end
 
     destroyCamera()
@@ -135,6 +147,8 @@ end
 
 CreateThread(function()
     for id, location in pairs(config.locations) do
+        createBlip(location.blip.coords.xyz, location.blip.sprite, location.blip.text)
+
         local menuId = buildVehicleShopMenu(id, location.classes)
 
         lib.requestModel(location.ped.model, 50000)
