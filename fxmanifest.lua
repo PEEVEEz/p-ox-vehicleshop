@@ -13,5 +13,6 @@ server_scripts {
 client_script "client/client.lua"
 
 files {
-    "config.lua"
+    "config.lua",
+    "client/dragcam.lua"
 }
