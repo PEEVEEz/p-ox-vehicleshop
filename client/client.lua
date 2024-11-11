@@ -17,6 +17,11 @@ local function createBlip(coords, sprite, text)
 end
 
 local function vehicleSelected(model, id)
+    if activeVehicle then
+        DeleteEntity(activeVehicle)
+        activeVehicle = nil
+    end
+
     lib.requestModel(model, 50000)
     local coords = config.locations[id].showCoords
     local veh = CreateVehicle(joaat(model), coords.x, coords.y, coords.z, coords.w or 0.0, false, true)
