@@ -36,6 +36,8 @@ return {
                 [7] = true
             },
 
+            allowWeapons = false,
+
             ped = {
                 model = `a_f_m_bevhills_01`,
                 coords = vec4(-57.0106, -1098.8391, 26.4224, 28.0163)

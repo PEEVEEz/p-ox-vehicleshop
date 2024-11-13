@@ -69,7 +69,7 @@ local function buildVehicleShopMenu(id, classes)
                 local menuId = ('vehicleshop_category_%s'):format(class)
 
                 for model, data in pairs(vehicles) do
-                    if data.class == class then
+                    if data.class == class and not data.weapons or (data.weapons and config.locations[id].allowWeapons) then
                         options2[#options2 + 1] = {
                             title = data.name,
                             onSelect = function()
