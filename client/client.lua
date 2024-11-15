@@ -1,9 +1,12 @@
-local config = require "config"
-local Ox = require '@ox_core/lib/init'
-
 local activeCamera = nil
 local activeVehicle = nil
+local menusRegistered = {}
+local config <const> = require "config"
+local Ox <const> = require '@ox_core/lib/init'
 
+---@param coords vector3
+---@param sprite number
+---@param text string
 local function createBlip(coords, sprite, text)
     local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
     SetBlipSprite(blip, sprite)
@@ -16,6 +19,8 @@ local function createBlip(coords, sprite, text)
     EndTextCommandSetBlipName(blip)
 end
 
+---@param model string
+---@param id number
 local function vehicleSelected(model, id)
     if activeVehicle then
         DeleteEntity(activeVehicle)
@@ -23,16 +28,16 @@ local function vehicleSelected(model, id)
     end
 
     lib.requestModel(model, 50000)
-    local coords = config.locations[id].showCoords
-    local veh = CreateVehicle(joaat(model), coords.x, coords.y, coords.z, coords.w or 0.0, false, true)
+    local coords <const> = config.locations[id].vehcileCoords
+    local veh <const> = CreateVehicle(joaat(model), coords.x, coords.y, coords.z, coords.w or 0.0, false, true)
     activeVehicle = veh
 end
 
+---@param id number
 local function createCamera(id)
-    local cameraOptions = config.locations[id].camera
+    local cameraOptions <const> = config.locations[id].camera
 
-    local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
-
+    local cam <const> = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
     SetCamCoord(cam, cameraOptions.coords.x, cameraOptions.coords.y, cameraOptions.coords.z)
     SetCamRot(cam, cameraOptions.rotation.x, cameraOptions.rotation.y, cameraOptions.rotation.z, 2)
     RenderScriptCams(true, false, 0, true, true)
@@ -57,73 +62,68 @@ local function closeVehicleShop()
     destroyCamera()
 end
 
+---@param id number
+---@param classes any
+---@return string
 local function buildVehicleShopMenu(id, classes)
     local options = {}
-    local vehicles = Ox.GetVehicleData()
+    local vehicles <const> = Ox.GetVehicleData()
 
     for class, _ in pairs(classes) do
         options[#options + 1] = {
-            title = config.classLabels[class],
+            title = locale(("class_%s"):format(class)),
             onSelect = function()
                 local options2 = {}
-                local menuId = ('vehicleshop_category_%s'):format(class)
+                local categoryMenuId <const> = ('vehicleshop_category_%s'):format(class)
 
                 for model, data in pairs(vehicles) do
-                    if data.class == class and not data.weapons or (data.weapons and config.locations[id].allowWeapons) then
+                    if data.class == class and not data.weapons or (data.weapons and config.locations[id].weaponVehicles) then
                         options2[#options2 + 1] = {
                             title = data.name,
                             onSelect = function()
+                                local vehicleMenuId <const> = ("vehicle_%s"):format(data.name)
                                 vehicleSelected(model, id)
 
+                                local function buy(account)
+                                    local success = lib.callback.await("p-ox-vehicleshop:server:buyVehicle",
+                                        false,
+                                        model, account,
+                                        id)
+
+                                    if success then
+                                        closeVehicleShop()
+                                    else
+                                        lib.showContext(vehicleMenuId)
+                                    end
+                                end
+
                                 lib.registerContext({
-                                    id = ("vehicle_%s"):format(data.name),
+                                    id = vehicleMenuId,
                                     title = ("Valitse maksutapa (%s)"):format(data.name),
-                                    menu = menuId,
+                                    menu = categoryMenuId,
                                     onExit = function()
                                         closeVehicleShop()
                                     end,
                                     options = {
                                         {
-                                            title = "Kortti",
-                                            onSelect = function()
-                                                local success = lib.callback.await("p-ox-vehicleshop:server:buyVehicle",
-                                                    false,
-                                                    model, "bank",
-                                                    id)
-
-                                                if success then
-                                                    closeVehicleShop()
-                                                else
-                                                    lib.showContext(("vehicle_%s"):format(data.name))
-                                                end
-                                            end
+                                            title = locale("bank"),
+                                            onSelect = buy
                                         },
                                         {
-                                            title = "Käteinen",
-                                            onSelect = function()
-                                                local success = lib.callback.await("p-ox-vehicleshop:server:buyVehicle",
-                                                    false,
-                                                    model, "cash",
-                                                    id)
-
-                                                if success then
-                                                    closeVehicleShop()
-                                                else
-                                                    lib.showContext(("vehicle_%s"):format(data.name))
-                                                end
-                                            end
+                                            title = locale("cash"),
+                                            onSelect = buy
                                         }
                                     }
                                 })
 
-                                lib.showContext(("vehicle_%s"):format(data.name))
+                                lib.showContext(vehicleMenuId)
                             end
                         }
                     end
                 end
 
                 lib.registerContext({
-                    id = menuId,
+                    id = categoryMenuId,
                     onExit = function()
                         closeVehicleShop()
                     end,
@@ -132,7 +132,7 @@ local function buildVehicleShopMenu(id, classes)
                     options = options2
                 })
 
-                lib.showContext(menuId)
+                lib.showContext(categoryMenuId)
             end
         }
     end
@@ -140,7 +140,7 @@ local function buildVehicleShopMenu(id, classes)
 
     lib.registerContext({
         id = ("vehicleshop_%s"):format(id),
-        title = "Autokauppa",
+        title = locale("vehicleshop_menu_title"),
         onExit = function()
             closeVehicleShop()
         end,
@@ -150,45 +150,70 @@ local function buildVehicleShopMenu(id, classes)
     return ("vehicleshop_%s"):format(id)
 end
 
+---@param id number
+---@param classes any
+local function openVehicleShop(id, classes)
+    if not menusRegistered[id] then
+        menusRegistered[id] = buildVehicleShopMenu(id, classes)
+    end
+
+    createCamera(id)
+    lib.showContext(menusRegistered[id])
+end
+
 CreateThread(function()
     for id, location in pairs(config.locations) do
         createBlip(location.blip.coords.xyz, location.blip.sprite, location.blip.text)
 
-        local menuId = buildVehicleShopMenu(id, location.classes)
+        if location.ped then
+            lib.requestModel(location.ped.model, 50000)
+            local ped = CreatePed(26, location.ped.model,
+                location.ped.coords.x, location.ped.coords.y, location.ped.coords.z, 0.0, false, false)
+            SetEntityHeading(ped, location.ped.coords.w)
+            FreezeEntityPosition(ped, true)
 
-        lib.requestModel(location.ped.model, 50000)
-        local ped = CreatePed(26, location.ped.model,
-            location.ped.coords.x, location.ped.coords.y, location.ped.coords.z, 0.0, false, false)
-        SetEntityHeading(ped, location.ped.coords.w)
-        FreezeEntityPosition(ped, true)
-
-        local point = lib.points.new({
-            coords = location.interactionCoords,
-            distance = 5,
-        })
-
-        function point:nearby()
-            DrawMarker(2, self.coords.x, self.coords.y, self.coords.z, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, 1.0, 1.0, 1.0, 200,
-                20, 20, 50, false, true, 2, false, nil, nil, false)
+            if config.useTarget then
+                exports.ox_target:addLocalEntity(ped, {
+                    {
+                        label = locale("open_vehicleshop_target"),
+                        icon = "fas fa-car",
+                        onSelect = function()
+                            openVehicleShop(id, location.classes)
+                        end
+                    }
+                })
+            end
         end
 
-        local point2 = lib.points.new({
-            coords = location.interactionCoords,
-            distance = 2,
-        })
+        if not config.useTarget then
+            local markerPoint <const> = lib.points.new({
+                coords = location.interactionCoords,
+                distance = 5,
+            })
 
-        function point2:onEnter()
-            lib.showTextUI('[E] - Autokauppa')
-        end
+            function markerPoint:nearby()
+                DrawMarker(2, self.coords.x, self.coords.y, self.coords.z, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, 1.0, 1.0, 1.0,
+                    200,
+                    20, 20, 50, false, true, 2, false, nil, nil, false)
+            end
 
-        function point2:onExit()
-            lib.hideTextUI()
-        end
+            local interactionPoint <const> = lib.points.new({
+                coords = location.interactionCoords,
+                distance = 2,
+            })
 
-        function point2:nearby()
-            if IsControlJustReleased(0, 38) then
-                createCamera(id)
-                lib.showContext(menuId)
+            function interactionPoint:onEnter()
+                lib.showTextUI(locale("open_vehicleshop"))
+            end
+
+            function interactionPoint:onExit()
+                lib.hideTextUI()
+            end
+
+            function interactionPoint:nearby()
+                if IsControlJustReleased(0, 38) then
+                    openVehicleShop(id, location.classes)
+                end
             end
         end
     end
