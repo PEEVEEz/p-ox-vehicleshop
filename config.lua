@@ -29,7 +29,7 @@ return {
 
             ped = {
                 model = `a_f_m_bevhills_01`,
-                coords = vec4(-57.0106, -1098.8391, 26.4224, 28.0163)
+                coords = vec4(-57.0106, -1098.8391, 25.4, 28.0163)
             },
 
             interactionCoords = vec3(-57.7865, -1097.3596, 26.4224),
