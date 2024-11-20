@@ -4,6 +4,8 @@ game 'gta5'
 author "PEEVEE"
 description "discord.gg/jRgkb5sM3w"
 
+ox_lib "locale"
+
 shared_script '@ox_lib/init.lua'
 
 server_scripts {

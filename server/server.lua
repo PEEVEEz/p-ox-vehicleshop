@@ -69,7 +69,6 @@ lib.callback.register("p-ox-vehicleshop:server:buyVehicle", function(source, mod
         }, freeSpawnPoint.xyz, freeSpawnPoint.w)
 
         Wait(500)
-
         TaskWarpPedIntoVehicle(GetPlayerPed(source), vehicle.entity, -1)
     end)
 

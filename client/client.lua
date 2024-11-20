@@ -99,7 +99,7 @@ local function buildVehicleShopMenu(id, classes)
 
                                 lib.registerContext({
                                     id = vehicleMenuId,
-                                    title = ("Valitse maksutapa (%s)"):format(data.name),
+                                    title = locale("select_payment_method", data.name),
                                     menu = categoryMenuId,
                                     onExit = function()
                                         closeVehicleShop()
@@ -127,7 +127,7 @@ local function buildVehicleShopMenu(id, classes)
                     onExit = function()
                         closeVehicleShop()
                     end,
-                    title = config.classLabels[class],
+                    title = locale(("class_%s"):format(class)),
                     menu = ("vehicleshop_%s"):format(id),
                     options = options2
                 })
@@ -140,7 +140,7 @@ local function buildVehicleShopMenu(id, classes)
 
     lib.registerContext({
         id = ("vehicleshop_%s"):format(id),
-        title = locale("vehicleshop_menu_title"),
+        title = config.locations[id].name,
         onExit = function()
             closeVehicleShop()
         end,
@@ -163,13 +163,14 @@ end
 
 CreateThread(function()
     for id, location in pairs(config.locations) do
-        createBlip(location.blip.coords.xyz, location.blip.sprite, location.blip.text)
+        createBlip(location.blip.coords.xyz, location.blip.sprite, location.name)
 
         if location.ped then
             lib.requestModel(location.ped.model, 50000)
             local ped = CreatePed(26, location.ped.model,
                 location.ped.coords.x, location.ped.coords.y, location.ped.coords.z, 0.0, false, false)
             SetEntityHeading(ped, location.ped.coords.w)
+            SetBlockingOfNonTemporaryEvents(ped, true)
             FreezeEntityPosition(ped, true)
 
             if config.useTarget then
