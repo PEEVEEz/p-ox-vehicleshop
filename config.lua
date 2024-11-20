@@ -3,6 +3,13 @@ return {
 
     locations = {
         {
+            marker = { -- https://overextended.dev/ox_lib/Modules/Marker/Client#marker-class
+                type = 2,
+                width = 0.5,
+                height = 0.5,
+                color = { r = 25, g = 87, b = 202, a = 60 },
+            },
+
             name = "Vehicleshop",
 
             blip = {

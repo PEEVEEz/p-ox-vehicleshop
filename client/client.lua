@@ -59,6 +59,9 @@ local function closeVehicleShop()
         activeVehicle = nil
     end
 
+    SetEntityInvincible(cache.ped, false)
+    FreezeEntityPosition(cache.ped, false)
+    SetEntityCollision(cache.ped, true, true)
     destroyCamera()
 end
 
@@ -159,6 +162,10 @@ local function openVehicleShop(id, classes)
 
     createCamera(id)
     lib.showContext(menusRegistered[id])
+
+    SetEntityInvincible(cache.ped, true)
+    FreezeEntityPosition(cache.ped, true)
+    SetEntityCollision(cache.ped, false, false)
 end
 
 CreateThread(function()
@@ -192,10 +199,9 @@ CreateThread(function()
                 distance = 5,
             })
 
+            local marker = lib.marker.new(lib.table.merge(location.marker, { coords = location.interactionCoords }))
             function markerPoint:nearby()
-                DrawMarker(2, self.coords.x, self.coords.y, self.coords.z, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, 1.0, 1.0, 1.0,
-                    200,
-                    20, 20, 50, false, true, 2, false, nil, nil, false)
+                marker:draw()
             end
 
             local interactionPoint <const> = lib.points.new({
